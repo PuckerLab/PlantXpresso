@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}PlantXpresso{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ base }}/logo.png">
+  <style>
+    /* One small stylesheet for the whole site. Change colours here. */
+    :root { --green: #2e6b3a; --light: #eef5ef; --border: #d5ddd6; --text: #1f2a21; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; color: var(--text); background: #fafcfa; }
+    header { background: var(--green); padding: 10px 24px; }
+    header a { display: flex; align-items: center; gap: 14px; color: white; text-decoration: none;
+               font-size: 1.7rem; font-weight: 600; }
+    header img { height: 64px; width: 64px; object-fit: contain; background: white;
+                 border-radius: 50%; padding: 4px; }
+    header span { opacity: .8; font-size: 1rem; font-weight: 400; }
+    nav { background: var(--green); padding: 0 24px; display: flex; gap: 4px; }
+    nav a { color: white; opacity: .75; text-decoration: none; padding: 8px 18px;
+            border-radius: 8px 8px 0 0; font-weight: 500; }
+    nav a:hover { opacity: 1; }
+    nav a.active { background: #fafcfa; color: var(--green); opacity: 1; }
+    main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+    a { color: var(--green); }
+    .panel { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; }
+    .types label { display: inline-block; margin: 4px 16px 4px 0; white-space: nowrap; }
+    details { border-left: 3px solid var(--border); margin: 6px 0; padding-left: 10px; }
+    details.order { border-left-color: var(--green); }
+    summary { cursor: pointer; padding: 4px 0; }
+    summary b { margin-right: 6px; }
+    .count { color: #667; font-size: .9em; margin-right: 8px; }
+    .species { display: flex; align-items: center; gap: 8px; padding: 3px 0 3px 18px; flex-wrap: wrap; }
+    .species i { flex: 1; min-width: 180px; }
+    button, .btn { background: var(--light); border: 1px solid var(--green); color: var(--green);
+                   border-radius: 5px; padding: 2px 9px; font-size: .85em; cursor: pointer;
+                   text-decoration: none; font-family: inherit; }
+    button:hover, .btn:hover { background: var(--green); color: white; }
+    button.cli, .btn.cli { border-style: dashed; }
+    input[type=search] { width: 100%; padding: 8px 10px; font-size: 1rem; border: 1px solid var(--border); border-radius: 6px; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; }
+    th { width: 34%; color: #556; font-weight: 500; }
+    pre { background: #1f2a21; color: #e8f2ea; padding: 12px 14px; border-radius: 6px;
+          overflow-x: auto; white-space: pre-wrap; word-break: break-all; position: relative; padding-top: 34px; }
+    pre button.copy { position: absolute; top: 6px; right: 6px; }
+    .legend { font-size: .9em; color: #556; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{{ base }}/">
+      <img src="{{ base }}/logo.png" alt="PlantXpresso logo" onerror="this.style.display='none'">
+      PlantXpresso <span>plant gene expression atlas</span>
+    </a>
+  </header>
+  <nav>
+    {% for key, label, url in tabs %}
+      <a href="{{ base }}{{ url }}" class="{{ 'active' if key == active }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

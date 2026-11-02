@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Command-line download – PlantXpresso{% endblock %}
+{% block content %}
+<p><a href="{{ base }}/">&larr; all species</a></p>
+<h1>Command-line download:
+  {% if level == "all" %}entire collection{% else %}{{ level }} <i>{{ name.replace("_", " ") }}</i>{% endif %}</h1>
+
+<div class="panel">
+  {{ n_species }} species &middot; {{ n_files }} files &middot; {{ "%.2f"|format(size_gb) }} GB (uncompressed)
+  &middot; {{ types|join(", ") }}
+</div>
+
+<div class="panel">
+  <h3>1. Save your login cookie (once)</h3>
+  <p>PlantXpresso sits behind Life Science Login, so the command line needs your browser's login session:</p>
+  <ol>
+    <li>Install a cookie-export browser extension, e.g. <b>"Get cookies.txt LOCALLY"</b> (Chrome/Edge/Firefox).</li>
+    <li>On this page, click the extension and export the cookies for this site as <code>cookies.txt</code>.</li>
+    <li>Copy <code>cookies.txt</code> into the folder where you will download. Keep it private: it works like your password until you log out.</li>
+  </ol>
+</div>
+
+<div class="panel">
+  <h3>2. Download the files</h3>
+  <p>Run these in a terminal (Linux, or macOS after <code>brew install wget</code>). If the download is interrupted,
+     simply run the second command again &mdash; finished files are skipped and partial ones resume.</p>
+<pre><button type="button" class="copy">Copy</button>wget --load-cookies cookies.txt -O {{ stem }}_files.txt "{{ manifest_url }}"
+wget --load-cookies cookies.txt -c -x -nH --cut-dirs={{ cut_dirs }} -i {{ stem }}_files.txt
+wget --load-cookies cookies.txt -O PlantXpresso_metadata.tsv "{{ metadata_url }}"</pre>
+  <p class="legend">Line 1 fetches the list of file links &middot; line 2 downloads them into
+     <code>&lt;Species&gt;/&lt;version&gt;/</code> folders (<code>-c</code> = resume) &middot; line 3 fetches the full metadata table.</p>
+</div>
+
+<script>
+// "Copy" button: copies the commands (without the button's own text) to the clipboard
+document.querySelectorAll("button.copy").forEach(btn => btn.addEventListener("click", () => {
+  const text = btn.parentElement.innerText.replace(btn.innerText, "").trim();
+  navigator.clipboard.writeText(text).then(() => { btn.innerText = "Copied"; setTimeout(() => btn.innerText = "Copy", 1500); });
+}));
+</script>
+{% endblock %}

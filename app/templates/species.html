@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ sp.display_name }} – PlantXpresso{% endblock %}
+{% block content %}
+<p><a href="{{ base }}/">&larr; all species</a> &nbsp;/&nbsp; {{ sp.order }} &nbsp;/&nbsp; {{ sp.family }}</p>
+<h1><i>{{ sp.display_name }}</i> <span class="count">version {{ sp.version }}</span></h1>
+
+<div class="panel">
+  <h3>Files</h3>
+  <table>
+    {% for key, path in sp.files.items() %}
+    <tr>
+      <th>{{ file_types[key][1] }}</th>
+      <td><a href="{{ base }}{{ file_url(path) }}">{{ path.name }}</a>
+          <span class="count">{{ (path.stat().st_size / 1e6)|round(1) }} MB</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p>
+    <a class="btn" href="{{ base }}/download/species/{{ sp.name }}">All files (.tar.gz)</a>
+    <a class="btn cli" href="{{ base }}/cli/species/{{ sp.name }}">Command line</a>
+    <a class="btn" href="{{ base }}/metadata?q={{ sp.name }}">Show on Metadata tab</a>
+  </p>
+  {% if sp.archives %}
+  <p>Older versions:
+    {% for a in sp.archives %}
+      <a href="{{ base }}/archive/{{ sp.name }}/{{ a.name }}">{{ a.name.replace('.tar.gz', '') }}</a>{{ "," if not loop.last }}
+    {% endfor %}
+  </p>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h3>Metadata</h3>
+  {% if meta_row %}
+  <table>
+    {% for col in meta_columns %}
+    {% set value = meta_row.get(col, "") %}
+    <tr>
+      <th>{{ col.replace("_", " ") }}</th>
+      <td>{% if value.startswith("http") %}<a href="{{ value }}" target="_blank" rel="noopener">{{ value }}</a>
+          {% else %}{{ value }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="legend">No entry for this species in the metadata table yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

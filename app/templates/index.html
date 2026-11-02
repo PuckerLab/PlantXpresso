@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<p>{{ n_species }} species, {{ tree|length }} orders. Browse by order &rarr; family &rarr; species and pick the file types you want.</p>
+
+{#  One <form> around everything: the checked file types are sent along with whichever
+    button is clicked (each button sets its own URL with "formaction").                 #}
+<form method="get">
+  <div class="panel types">
+    <b>File types to include:</b><br>
+    {% for key, (suffix, label) in file_types.items() %}
+      <label><input type="checkbox" name="types" value="{{ key }}" checked> {{ label }}</label>
+    {% endfor %}
+    <p class="legend">
+      <b>.tar.gz</b> = one compressed file, downloaded by your browser &nbsp;|&nbsp;
+      <b>Command line</b> = ready-to-copy <code>wget</code> commands (resumable; best for large downloads and servers)
+    </p>
+  </div>
+
+  <div class="panel">
+    <b>Entire collection</b>
+    <button class="cli" formaction="{{ base }}/cli/all/all">Command line</button>
+    <span class="legend">&nbsp; Species details are on the <a href="{{ base }}/metadata">Metadata</a> tab.</span>
+  </div>
+
+  <div class="panel">
+    <input type="search" id="search" placeholder="Filter by species, family or order (e.g. Arabidopsis, Fabaceae)">
+  </div>
+
+  <div class="panel" id="tree">
+    {% for order, families in tree.items() %}
+    <details class="order" data-text="{{ order|lower }}">
+      <summary>
+        <b>{{ order }}</b>
+        <span class="count">{{ families|length }} {{ 'family' if families|length == 1 else 'families' }}, {{ families.values()|map('length')|sum }} species</span>
+        <button formaction="{{ base }}/download/order/{{ order|urlencode }}">.tar.gz</button>
+        <button class="cli" formaction="{{ base }}/cli/order/{{ order|urlencode }}">Command line</button>
+      </summary>
+
+      {% for family, members in families.items() %}
+      <details class="family" data-text="{{ family|lower }}">
+        <summary>
+          <b>{{ family }}</b>
+          <span class="count">{{ members|length }} species</span>
+          <button formaction="{{ base }}/download/family/{{ family|urlencode }}">.tar.gz</button>
+          <button class="cli" formaction="{{ base }}/cli/family/{{ family|urlencode }}">Command line</button>
+        </summary>
+        {% for sp in members %}
+        <div class="species" data-text="{{ sp.display_name|lower }}">
+          <i><a href="{{ base }}/species/{{ sp.name }}">{{ sp.display_name }}</a></i>
+          <span class="count">{{ sp.version }}</span>
+          <button formaction="{{ base }}/download/species/{{ sp.name }}">.tar.gz</button>
+          <button class="cli" formaction="{{ base }}/cli/species/{{ sp.name }}">Command line</button>
+        </div>
+        {% endfor %}
+      </details>
+      {% endfor %}
+    </details>
+    {% endfor %}
+  </div>
+</form>
+
+<script>
+// Live filter: hide species/families/orders that don't match the search text,
+// and open the matching branches. Matching an order or family shows everything in it.
+document.getElementById("search").addEventListener("input", function () {
+  const q = this.value.trim().toLowerCase();
+  document.querySelectorAll("details.order").forEach(order => {
+    const orderHit = order.dataset.text.includes(q);
+    let orderShown = false;
+    order.querySelectorAll("details.family").forEach(fam => {
+      const famHit = orderHit || fam.dataset.text.includes(q);
+      let famShown = false;
+      fam.querySelectorAll(".species").forEach(sp => {
+        const show = !q || famHit || sp.dataset.text.includes(q);
+        sp.style.display = show ? "" : "none";
+        famShown = famShown || show;
+      });
+      fam.style.display = famShown ? "" : "none";
+      fam.open = !!q && famShown;
+      orderShown = orderShown || famShown;
+    });
+    order.style.display = orderShown ? "" : "none";
+    order.open = !!q && orderShown;
+  });
+});
+</script>
+{% endblock %}

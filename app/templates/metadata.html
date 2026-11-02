@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Metadata – PlantXpresso{% endblock %}
+{% block content %}
+<style>
+  /* styles only used on this tab */
+  .table-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: 8px; background: white; }
+  table.meta { font-size: .88em; }
+  table.meta th { width: auto; position: sticky; top: 0; background: var(--light); color: var(--text);
+                  cursor: pointer; white-space: nowrap; user-select: none; }
+  table.meta th:hover { background: #dcebdf; }
+  table.meta td { white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+  table.meta tr:hover td { background: #f5faf6; }
+  .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .toolbar input { flex: 1; min-width: 240px; }
+</style>
+
+{% if not columns %}
+  <div class="panel">The metadata table is not available right now. Please check back later.</div>
+{% else %}
+<div class="toolbar">
+  <input type="search" id="search" placeholder="Filter rows (species, family, order, assembly ...)">
+  <span class="count" id="shown">{{ rows|length }} of {{ rows|length }} species</span>
+  <a class="btn" href="{{ base }}/metadata/download">Download table (TSV)</a>
+</div>
+<p class="legend">Click a column name to sort. Species names link to their download page.</p>
+
+<div class="table-wrap">
+  <table class="meta" id="meta">
+    <thead>
+      <tr>{% for col in columns %}<th>{{ col.replace("_", " ") }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for row, species in rows %}
+      <tr>
+        {% for col in columns %}
+        {% set value = row.get(col, "") %}
+        <td title="{{ value }}">
+          {%- if col == key_column and species -%}
+            <a href="{{ base }}/species/{{ species }}"><i>{{ value }}</i></a>
+          {%- elif value.startswith("http") -%}
+            <a href="{{ value }}" target="_blank" rel="noopener">{{ value }}</a>
+          {%- else -%}
+            {{ value }}
+          {%- endif -%}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+// Everything below runs in the user's browser; the server just sends the full table once.
+const table = document.getElementById("meta");
+const body = table.tBodies[0];
+const rows = Array.from(body.rows);
+const search = document.getElementById("search");
+const shown = document.getElementById("shown");
+
+// 1) Filter: hide rows that don't contain the search text (any column).
+//    "_" and " " count as the same, so "Lotus japonicus" finds "Lotus_japonicus_A1E0".
+const norm = t => t.toLowerCase().replaceAll("_", " ");
+function applyFilter() {
+  const q = norm(search.value.trim());
+  let n = 0;
+  rows.forEach(r => {
+    const show = !q || norm(r.innerText).includes(q);
+    r.style.display = show ? "" : "none";
+    if (show) n++;
+  });
+  shown.innerText = `${n} of ${rows.length} species`;
+}
+search.addEventListener("input", applyFilter);
+
+// pre-fill from the address bar, e.g. /metadata?q=Lotus_japonicus (used by species pages)
+const q = new URLSearchParams(location.search).get("q");
+if (q) { search.value = q; applyFilter(); }
+
+// 2) Sort: click a header; click again to reverse. Numbers sort as numbers.
+let sortCol = -1, ascending = true;
+table.tHead.rows[0].querySelectorAll("th").forEach((th, col) => th.addEventListener("click", () => {
+  ascending = (col === sortCol) ? !ascending : true;
+  sortCol = col;
+  const value = r => r.cells[col].innerText.trim();
+  rows.sort((a, b) => {
+    const x = value(a), y = value(b), nx = parseFloat(x), ny = parseFloat(y);
+    const cmp = (!isNaN(nx) && !isNaN(ny)) ? nx - ny : x.localeCompare(y);
+    return ascending ? cmp : -cmp;
+  });
+  rows.forEach(r => body.appendChild(r));      // re-attach in the new order
+}));
+</script>
+{% endif %}
+{% endblock %}
