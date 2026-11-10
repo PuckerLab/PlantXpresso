@@ -18,7 +18,9 @@
   <p>
     <a class="btn" href="{{ base }}/download/species/{{ sp.name }}">All files (.tar.gz)</a>
     <a class="btn cli" href="{{ base }}/cli/species/{{ sp.name }}">Command line</a>
-    <a class="btn" href="{{ base }}/metadata?q={{ sp.name }}">Show on Metadata tab</a>
+    <a class="btn" href="{{ base }}/metadata?q={{ sp.name }}">Show on Species metadata tab</a>
+    <a class="btn" href="{{ base }}/expression?species={{ sp.name }}">Plot a gene</a>
+    <a class="btn" href="{{ base }}/pca?species={{ sp.name }}">PCA</a>
   </p>
   {% if sp.archives %}
   <p>Older versions:
@@ -30,7 +32,7 @@
 </div>
 
 <div class="panel">
-  <h3>Metadata</h3>
+  <h3>Species metadata</h3>
   {% if meta_row %}
   <table>
     {% for col in meta_columns %}

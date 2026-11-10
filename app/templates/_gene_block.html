@@ -1,0 +1,31 @@
+{#  Shared piece: statistics table + violin plot + download links for ONE gene.
+    Needs: result, stats, species, gene, scale (scale may be missing = no scaling).
+    Used by expression.html and search_job.html.                                   #}
+<style> table.stats th { width: auto; } </style>
+{# all plot/download links share the same parameters #}
+{% set q = "species=" ~ species ~ "&gene=" ~ (gene|urlencode) ~ ("&scale=true" if scale else "") %}
+<div class="panel">
+  <h3>{{ gene }} in <i>{{ result.species.display_name }}</i> ({{ result.species.version }})</h3>
+  {% if not result.tissue_wise %}
+  <p class="legend">No tissue labels are available for this species, so all samples are shown as one group.</p>
+  {% endif %}
+
+  <table class="stats">
+    <tr><th>Group</th><th>Samples</th><th>Min TPM</th><th>Max TPM</th><th>Mean TPM</th><th>Median TPM</th></tr>
+    {% for label, s in stats %}
+    <tr {{ 'style="font-weight:600"' if loop.first }}>
+      <td>{{ label }}</td><td>{{ s.n }}</td>
+      <td>{{ "%.2f"|format(s.min) }}</td><td>{{ "%.2f"|format(s.max) }}</td>
+      <td>{{ "%.2f"|format(s.mean) }}</td><td>{{ "%.2f"|format(s.median) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <p style="overflow-x:auto"><img src="{{ base }}/expression/plot?{{ q }}" alt="Violin plot of {{ gene }}" style="max-width:none"></p>
+
+  <p>
+    <a class="btn" href="{{ base }}/expression/plot?{{ q }}&fmt=png&dpi=600&download=true">Download PNG (600 dpi)</a>
+    <a class="btn" href="{{ base }}/expression/plot?{{ q }}&fmt=svg&download=true">Download SVG</a>
+    <a class="btn" href="{{ base }}/expression/plot?{{ q }}&fmt=tsv&download=true">Download values (TSV)</a>
+  </p>
+</div>

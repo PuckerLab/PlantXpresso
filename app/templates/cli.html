@@ -26,9 +26,9 @@
      simply run the second command again &mdash; finished files are skipped and partial ones resume.</p>
 <pre><button type="button" class="copy">Copy</button>wget --load-cookies cookies.txt -O {{ stem }}_files.txt "{{ manifest_url }}"
 wget --load-cookies cookies.txt -c -x -nH --cut-dirs={{ cut_dirs }} -i {{ stem }}_files.txt
-wget --load-cookies cookies.txt -O PlantXpresso_metadata.tsv "{{ metadata_url }}"</pre>
+wget --load-cookies cookies.txt -O PlantXpresso_species_metadata.tsv "{{ metadata_url }}"</pre>
   <p class="legend">Line 1 fetches the list of file links &middot; line 2 downloads them into
-     <code>&lt;Species&gt;/&lt;version&gt;/</code> folders (<code>-c</code> = resume) &middot; line 3 fetches the full metadata table.</p>
+     <code>&lt;Species&gt;/&lt;version&gt;/</code> folders (<code>-c</code> = resume) &middot; line 3 fetches the species metadata table.</p>
 </div>
 
 <script>

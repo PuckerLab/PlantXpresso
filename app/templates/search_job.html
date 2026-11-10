@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Search {{ job.status }} – PlantXpresso{% endblock %}
+
+{% block content %}
+{# While the search waits or runs, the browser reloads this page every 3 seconds #}
+{% if job.status in ("queued", "running") %}<meta http-equiv="refresh" content="3">{% endif %}
+<style> table.hits th { width: auto; } </style>
+
+<p><a href="{{ base }}/expression#sequence">&larr; new search</a></p>
+
+<div class="panel">
+  <h3>DIAMOND {{ job.program }}: {{ job.header }} ({{ job.length }} {{ "nt" if job.seq_type == "cds" else "aa" }})
+      vs <i>{{ job.species.replace("_", " ") }}</i> ({{ job.version }})</h3>
+  {% for w in job.warnings %}<p class="legend">Note on the query: {{ w }}</p>{% endfor %}
+
+  {% if job.status == "queued" %}
+    <p><b>Waiting</b> for a free slot (other searches are running). This page updates by itself.</p>
+  {% elif job.status == "running" %}
+    <p><b>Searching&hellip;</b> usually a few seconds. This page updates by itself.</p>
+  {% elif job.status == "failed" %}
+    <p><b>{{ job.error }}</b></p>
+  {% elif not job.hits %}
+    <p><b>No significant hit</b> (e-value &le; 1e-5) in this species.</p>
+  {% else %}
+    <p class="legend">Bookmark this page to come back to the results (kept for 7 days).</p>
+    <table class="hits">
+      <tr><th>Rank</th><th>Hit</th><th>Bit score</th><th>E-value</th><th>Identity %</th>
+          <th>Alignment length</th><th>Query coverage %</th><th></th></tr>
+      {% for h in job.hits %}
+      <tr {{ 'style="font-weight:600"' if loop.first }}>
+        <td>{{ loop.index }}</td><td>{{ h.id }}</td><td>{{ "%.1f"|format(h.bitscore) }}</td>
+        <td>{{ "%.2g"|format(h.evalue) }}</td><td>{{ "%.1f"|format(h.identity) }}</td>
+        <td>{{ h.length }}</td><td>{{ "%.1f"|format(h.query_coverage) }}</td>
+        <td><a href="{{ base }}/expression?species={{ job.species }}&gene={{ h.id|urlencode }}{{ '&scale=true' if scale }}">plot</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+  <p class="legend">{{ note }}</p>
+</div>
+
+{% if block_error %}<div class="panel">{{ block_error }}</div>{% endif %}
+
+{# expression of the top hit: the same block as on the Expression tab #}
+{% if block %}
+  {# ticking the box reloads this page with ?scale=true; the plot and downloads follow #}
+  <form method="get" class="legend">
+    <label><input type="checkbox" name="scale" value="true" {{ "checked" if scale }}
+                  onchange="this.form.submit()"> scale violin width by sample number</label>
+  </form>
+  {% with result=block.result, stats=block.stats, species=block.species, gene=block.gene, scale=scale %}
+    {% include "_gene_block.html" %}
+  {% endwith %}
+{% endif %}
+{% endblock %}

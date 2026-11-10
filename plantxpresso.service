@@ -12,12 +12,7 @@ RequiresMountsFor=/vol/data
 [Service]
 User=ubuntu
 WorkingDirectory=/home/ubuntu/plantxpresso
-Environment=PLANTX_DATA_DIR=/vol/data/datasets/PanXpresso
-Environment=PLANTX_METADATA_TSV=/vol/data/datasets/PlantXpresso_metadata.tsv
-Environment=PLANTX_METADATA_WEBSERVER_TSV=/vol/data/datasets/PlantXpresso_metadata_webserver.tsv
-Environment=PLANTX_LOGO=/vol/data/datasets/PlantXpresso_logo.png
-# Only if the command-line download page shows a wrong web address, set the public link here:
-#Environment=PLANTX_PUBLIC_URL=https://your-plantxpresso-link
+EnvironmentFile=/home/ubuntu/plantxpresso/plantxpresso.env
 # 4 worker processes = requests handled in parallel; 3838 = port the SimpleVM web service uses
 ExecStart=/home/ubuntu/plantxpresso/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3838 --workers 4 --forwarded-allow-ips=*
 Restart=always

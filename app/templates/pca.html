@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}PCA – PlantXpresso{% endblock %}
+{% block content %}
+
+<form class="panel" method="get" action="{{ base }}/pca">
+  <label>Species
+    <select name="species" required>
+      <option value="">choose a species</option>
+      {% for sp in species_list %}
+      <option value="{{ sp.name }}" {{ "selected" if sp.name == species }}>{{ sp.display_name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  &nbsp;
+  <button type="submit">Show PCA</button>
+  <p class="legend">Samples with a tissue label; genes with mean TPM &ge; 1; log2(TPM + 1), z-scored per gene.</p>
+</form>
+
+{% if error %}<div class="panel">{{ error }}</div>{% endif %}
+
+{% if pca %}
+<div class="panel">
+  <p>{{ pca.n_samples }} samples &middot; {{ pca.n_tissues }} tissue groups &middot;
+     variance explained:
+     {% for v in pca.variance[:4] %}PC{{ loop.index }} {{ "%.1f"|format(v) }}%{{ ", " if not loop.last }}{% endfor %}</p>
+
+  <p style="overflow-x:auto"><img src="{{ base }}/pca/plot?species={{ species }}" alt="PCA plot" style="max-width:100%"></p>
+
+  <p>
+    <a class="btn" href="{{ base }}/pca/plot?species={{ species }}&fmt=png&dpi=600&download=true">Download PNG (600 dpi)</a>
+    <a class="btn" href="{{ base }}/pca/plot?species={{ species }}&fmt=svg&download=true">Download SVG</a>
+    <a class="btn" href="{{ base }}/pca/plot?species={{ species }}&fmt=tsv&download=true">Download PC coordinates (TSV)</a>
+  </p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Expression analysis – PlantXpresso{% endblock %}
+{% block content %}
+
+{# The form sends species + gene to this same page (/expression?species=...&gene=...) #}
+<form class="panel" method="get" action="{{ base }}/expression">
+  <p><b>Find a gene by its ID</b></p>
+  <label>Species
+    <select name="species" required>
+      <option value="">choose a species</option>
+      {% for sp in species_list %}
+      <option value="{{ sp.name }}" {{ "selected" if sp.name == species }}>{{ sp.display_name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  &nbsp;
+  <label>Gene / transcript ID
+    <span class="ac-wrap">
+      <input name="gene" id="gene" value="{{ gene }}" required size="34" autocomplete="off"
+             placeholder="type 3+ characters, e.g. AT5G08640">
+      <ul id="suggestions" class="ac-list" hidden></ul>
+    </span>
+  </label>
+  &nbsp;
+  <label><input type="checkbox" name="scale" value="true" {{ "checked" if scale }}> scale violin width by sample number</label>
+  &nbsp;
+  <button type="submit">Plot</button>
+  <p class="legend">Suggestions match anywhere in the ID and ignore upper/lower case and punctuation
+     (AT5G08640.1 finds rna-TAIR12-TAIR12-AT5G08640-1).</p>
+</form>
+
+{# ---- Don't know the ID? Search by sequence (DIAMOND). Opens by itself when there are errors. ---- #}
+<details class="panel" id="sequence" {{ "open" if search_errors }}>
+  <summary><b>Don't know the ID? Find the gene by its sequence</b> (DIAMOND blastx / blastp)</summary>
+  <p class="legend"><b>Note:</b> {{ note }}</p>
+
+  {% if search_errors %}
+  <div class="search-errors">
+    <b>The search could not be started:</b>
+    <ul>{% for e in search_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {# method="post": the sequence travels in the request body (too long for a URL) #}
+  <form method="post" action="{{ base }}/search">
+    <p>
+      <label>Species
+        <select name="species" required>
+          <option value="">choose a species</option>
+          {% for sp in search_species_list %}
+          <option value="{{ sp.name }}" {{ "selected" if sp.name == search_species }}>{{ sp.display_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </p>
+    <p>
+      Sequence type:
+      <label><input type="radio" name="seq_type" value="cds" {{ "checked" if seq_type == "cds" }}>
+        CDS (nucleotides) &rarr; blastx</label>
+      &nbsp;
+      <label><input type="radio" name="seq_type" value="protein" {{ "checked" if seq_type == "protein" }}>
+        Protein &rarr; blastp</label>
+    </p>
+    <textarea name="sequence" rows="8" required
+      placeholder=">my_gene&#10;ATGGCTTCTTCAATGCTC...">{{ sequence }}</textarea>
+    <p class="legend">One sequence in FASTA format. Hits with e-value &le; 1e-5 are ranked by bit score;
+       the expression of the best hit is plotted.</p>
+    <button type="submit">Search</button>
+  </form>
+</details>
+
+<style>
+  details.panel summary { cursor: pointer; }
+  textarea { width: 100%; font-family: monospace; font-size: .9em; padding: 8px;
+             border: 1px solid var(--border); border-radius: 6px; }
+  .search-errors { border: 1px solid #c0392b; color: #8e2a1e; border-radius: 6px; padding: 8px 14px; margin: 8px 0; }
+  /* the suggestion list hangs below the gene box */
+  .ac-wrap { position: relative; display: inline-block; }
+  .ac-list { position: absolute; left: 0; top: 100%; z-index: 10; min-width: 100%; max-height: 320px;
+             overflow-y: auto; margin: 2px 0 0; padding: 0; list-style: none; background: white;
+             border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+  .ac-list li { padding: 5px 10px; cursor: pointer; font-family: monospace; white-space: nowrap; }
+  .ac-list li.active, .ac-list li:hover { background: var(--light); }
+</style>
+
+<script>
+// Autocomplete, step by step:
+//  1. the user types in the gene box
+//  2. we wait until they pause for 200 ms (so we don't ask the server on every key)
+//  3. we ask /api/genes?species=...&q=... and get back up to 20 matching IDs
+//  4. we show them as a list; clicking one (or arrow keys + Enter) fills the box and plots it
+const form = document.querySelector('form[action$="/expression"]');
+const input = document.getElementById("gene");
+const list = document.getElementById("suggestions");
+const speciesSelect = form.querySelector('select[name="species"]');
+let timer = null, active = -1;
+
+function show(ids) {
+  list.innerHTML = "";
+  ids.forEach(id => {
+    const li = document.createElement("li");
+    li.textContent = id;                          // textContent: IDs are shown as plain text
+    li.addEventListener("mousedown", () => choose(id));
+    list.appendChild(li);
+  });
+  list.hidden = ids.length === 0;
+  active = -1;
+}
+
+function choose(id) {                             // fill the box and plot right away
+  input.value = id;
+  list.hidden = true;
+  form.submit();
+}
+
+input.addEventListener("input", () => {
+  clearTimeout(timer);
+  const q = input.value.trim(), species = speciesSelect.value;
+  if (!species || q.replace(/[^a-z0-9]/gi, "").length < 3) { show([]); return; }
+  timer = setTimeout(async () => {
+    const url = `{{ base }}/api/genes?species=${encodeURIComponent(species)}&q=${encodeURIComponent(q)}`;
+    const response = await fetch(url);
+    if (response.ok && input.value.trim() === q) show(await response.json());   // ignore outdated answers
+  }, 200);
+});
+
+input.addEventListener("keydown", e => {          // arrow keys move, Enter picks, Escape closes
+  const items = list.querySelectorAll("li");
+  if (list.hidden || !items.length) return;
+  if (e.key === "ArrowDown") active = Math.min(active + 1, items.length - 1);
+  else if (e.key === "ArrowUp") active = Math.max(active - 1, 0);
+  else if (e.key === "Escape") { list.hidden = true; return; }
+  else if (e.key === "Enter" && active >= 0) { e.preventDefault(); choose(items[active].textContent); return; }
+  else return;
+  e.preventDefault();
+  items.forEach((li, i) => li.classList.toggle("active", i === active));
+  items[active].scrollIntoView({ block: "nearest" });
+});
+
+input.addEventListener("blur", () => setTimeout(() => list.hidden = true, 150));
+speciesSelect.addEventListener("change", () => show([]));   // new species: old suggestions are wrong
+</script>
+
+{% if error %}
+<div class="panel">
+  <p>{{ error }}</p>
+  {% if suggestions %}
+  <p>Similar IDs:
+    {% for g in suggestions %}
+      <a href="{{ base }}/expression?species={{ species }}&gene={{ g|urlencode }}">{{ g }}</a>{{ "," if not loop.last }}
+    {% endfor %}
+  </p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if result %}
+{% include "_gene_block.html" %}
+{% endif %}
+{% endblock %}

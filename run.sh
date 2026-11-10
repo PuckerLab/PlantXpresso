@@ -8,10 +8,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-export PLANTX_DATA_DIR="${PLANTX_DATA_DIR:-/vol/data/datasets/PanXpresso}"
-export PLANTX_METADATA_TSV="${PLANTX_METADATA_TSV:-/vol/data/datasets/PlantXpresso_metadata.tsv}"
-export PLANTX_METADATA_WEBSERVER_TSV="${PLANTX_METADATA_WEBSERVER_TSV:-/vol/data/datasets/PlantXpresso_metadata_webserver.tsv}"
-export PLANTX_LOGO="${PLANTX_LOGO:-/vol/data/datasets/PlantXpresso_logo.png}"
+set -a; . ./plantxpresso.env; set +a      # the same settings as the service and cron
 PORT="${PLANTX_PORT:-3838}"      # 3838 = the port the SimpleVM web service forwards to
 
 # --reload restarts the app automatically when you edit a .py/.html file (development only)
