@@ -1,8 +1,16 @@
+
 # PlantXpresso
+
 Scripts for backend development of PlantXpresso webserver hosting the plant species datasets from the PanXpresso data collection.
 
-PlantXpresso is a FastAPI web application running on a de.NBI SimpleVM (Web Services, port 3838,
-access via Life Science Login).
+PlantXpresso is a FastAPI web application running on a de.NBI SimpleVM
+
+## PlantXpresso access link
+
+https://simplevm.bi.denbi.de/panxpressowebserver_100
+
+Access requires Life Science AAI Login
+ 
 
 ## Tabs
 
@@ -44,81 +52,4 @@ plantxpresso/
 
 Every feature = a route in `main.py` (+ a template). New tab = one line in `TABS` (main.py) + a route + a template.
 
-## Data and generated files
 
-All paths are set in `plantxpresso.env`.
-
-| Path | Content | Written by |
-|---|---|---|
-| `/vol/data/datasets/PlantXpresso/<Species>/<A#E#>/` | species data: `.tpms.tsv`, `.cds.fasta`, `.pep.fasta` (+ `.repr` variants); old versions as `A#E#.tar.gz` | rsync from the storage VM (never written by the app) |
-| `/vol/data/datasets/PlantXpresso_metadata.tsv` | internal metadata: builds the browse tree, selects the current version | storage VM |
-| `/vol/data/datasets/PlantXpresso_metadata_webserver.tsv` | species metadata shown to users | storage VM |
-| `/vol/data/datasets/PlantXpresso_tissue_metadata/<Species>/<A#E#>/Specific_class_labelled_metadata.tsv` | tissue label per sample (`run_accession`, `tissue`) | you |
-| `/vol/data/datasets/PlantXpresso_logo.png` | logo | you |
-| `/vol/data/plantxpresso_cache/<Species>/<A#E#>/` | `expr.npy` + `genes.txt` + `samples.txt` (fast gene lookup), `pca.tsv` + `pca_variance.txt`, `pep.dmnd` (DIAMOND db), `sources.txt` (input fingerprint) | `build_cache.py` |
-| `/vol/data/plantxpresso_jobs/<job-id>/` | one folder per sequence search; deleted after 7 days | website / `build_cache.py` |
-
-The website only reads from `/vol/data/datasets`. The cache uses only the full `.tpms.tsv` and `.pep.fasta` files, never the `.repr` ones.
-
-## What runs where
-
-| What | How | When |
-|---|---|---|
-| Website | systemd service `plantxpresso` (uvicorn, workers, port 3838) | always; starts at boot after `/vol/data` is mounted |
-| Cache build | `build_cache.py` from the `ubuntu` crontab | nightly at 02:00 (VM time, usually UTC); only changed species are rebuilt |
-| Data sync | rsync + TSV transfer from the storage VM | storage VM's own schedule (not at 02:00) |
-
-Changes to the tissue labels show up immediately in the violin plots; the PCA follows after the next nightly build.
-
-## Setup (once, on the webserver VM)
-
-```bash
-sudo apt update && sudo apt install -y python3-venv pigz
-# DIAMOND: apt install diamond-aligner, or a binary (here /vol/data/tools/diamond) + PLANTX_DIAMOND in plantxpresso.env
-
-sudo mkdir -p /vol/data/plantxpresso_cache /vol/data/plantxpresso_jobs
-sudo chown ubuntu:ubuntu /vol/data/plantxpresso_cache /vol/data/plantxpresso_jobs
-
-cd ~/plantxpresso
-python3 -m venv venv
-./venv/bin/pip install --no-cache-dir -r requirements.txt
-
-sudo cp plantxpresso.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now plantxpresso
-
-# first full cache build (long; run in tmux)
-set -a && . ./plantxpresso.env && set +a && ./venv/bin/python build_cache.py 2>&1 | tee ~/first_build.log
-```
-
-Crontab (`crontab -e`, as ubuntu, no sudo):
-
-```
-0 2 * * * cd /home/ubuntu/plantxpresso && set -a && . ./plantxpresso.env && set +a && flock -n /tmp/plantx_cache.lock nice ./venv/bin/python build_cache.py >> /home/ubuntu/plantx_cache.log 2>&1
-```
-
-## Everyday tasks
-
-| Task | Command(s) |
-|---|---|
-| Health check | `systemctl status plantxpresso` · `curl -s localhost:3838/status` |
-| Logs | `journalctl -u plantxpresso -n 100` (website) · `tail ~/plantx_cache.log` (nightly build) |
-| Code or template changed | copy files to the VM, then `sudo systemctl restart plantxpresso` |
-| New Python package in `requirements.txt` | `./venv/bin/pip install -r requirements.txt`, then restart |
-| A path/setting changed | edit `plantxpresso.env`, then restart (cron picks it up automatically) |
-| Service file changed | `sudo cp plantxpresso.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart plantxpresso` |
-| Rebuild one species now | `set -a && . ./plantxpresso.env && set +a && ./venv/bin/python build_cache.py <Species_name>` |
-| Test changes privately | `PLANTX_PORT=8000 ./run.sh --reload` + SSH tunnel to port 8000 |
-
-Copy code to the VM without IDE/venv/git folders:
-
-```bash
-rsync -av --exclude '.git/' --exclude '.venv/' --exclude 'venv/' --exclude '.idea/' --exclude '__pycache__/' \
-  -e "ssh -p <port> -i <key>" ./ ubuntu@<vm-ip>:/home/ubuntu/plantxpresso/
-```
-
-Full operations guide (reboots, maintenance, troubleshooting): the "PlantXpresso – server operations guide" doc.
-
-## License
-
-GNU General Public License v3.0, see `LICENSE`.
