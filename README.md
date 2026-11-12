@@ -52,4 +52,10 @@ plantxpresso/
 
 Every feature = a route in `main.py` (+ a template). New tab = one line in `TABS` (main.py) + a route + a template.
 
-
+#### AI Statement
+The core expression plot, and PCA code blocks were manually scripted. Claude Sonnet 5.5
+was used to debug and optimize the scripts. The tissue metadata annotations were done manually
+and PlantScience.ai was used to obtain information about some specific plant tissue types and
+anatomical structures. Claude Opus 5.5 was used to construct the web browser backend scripts 
+involving FastAPI, Uvicorn, and Jinja2. ChatGPT's GPT6 was used to design the logo of the 
+web browser based on a manually described concept prompt.
