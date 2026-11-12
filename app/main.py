@@ -81,8 +81,8 @@ def render(request, template, active, **context):
 
 
 def public_base(request):
-    """The site's public address, e.g. https://plantxpresso.example.org  (used in wget commands)."""
-    return PUBLIC_URL or str(request.base_url).rstrip("/")
+    # scheme + host from the request, plus the sub-path the site lives under ({{ base }})
+    return PUBLIC_URL or f"{request.url.scheme}://{request.url.netloc}{request.scope.get('root_path', '')}"
 
 
 def members_for(level, name):
@@ -470,3 +470,14 @@ def status():
             "expression_cache_missing": [s for s in sorted(cat.species)
                                          if not (ex.cache_dir(cat.species[s]) / "expr.npy").is_file()],
             "warnings": cat.problems}
+# ================================================== serving under a sub-path =======
+# SimpleVM forwards  https://simplevm.bi.denbi.de/<name>/...  to this app WITH "/<name>"
+# still at the start of the address. PLANTX_URL_PREFIX (in plantxpresso.env) tells the
+# app that prefix: the whole site defined above is then placed ("mounted") under it,
+# and every link on every page automatically includes it (that is what {{ base }} does).
+# Without PLANTX_URL_PREFIX, nothing changes: the site is served at "/" as before.
+URL_PREFIX = os.environ.get("PLANTX_URL_PREFIX", "").rstrip("/")
+if URL_PREFIX:
+    plantxpresso = app                    # the site with all its pages, built above
+    app = FastAPI(title="PlantXpresso")   # a new outer app: this is what uvicorn runs
+    app.mount(URL_PREFIX, plantxpresso)   # the site now lives under the prefix
