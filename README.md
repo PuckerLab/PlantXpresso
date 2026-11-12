@@ -1,6 +1,11 @@
 
 # PlantXpresso
 
+
+<p align="center">
+  <img width="200" height="200" alt="PlantXpresso_Botanical_RNA_Coffee_Cup-removebg-preview" src="https://github.com/user-attachments/assets/e45d4c35-2973-49ec-a867-0a41ee51d3c6" />
+</p>
+
 Scripts for backend development of PlantXpresso webserver hosting the plant species datasets from the PanXpresso data collection.
 
 PlantXpresso is a FastAPI web application running on a de.NBI SimpleVM
